@@ -17,6 +17,10 @@ function MustGet(obj, propName) {
   return obj[propName];
 }
 
+function Get(obj, propName) {
+  return obj[propName];
+}
+
 // DefaultNumberOption utils
 function DefaultNumberOption(value, minimum, maximum, fallback) {
   if (value === undefined) return fallback;
@@ -39,24 +43,24 @@ function SetNumberFormatDigitOptions_v3(
   try {
     // 1. Let _mnid_ be ? GetNumberOption(_options_, *"minimumIntegerDigits,"*, 1, 21, 1).
     let mnid = DefaultNumberOption(
-      MustGet(options, "minimumIntegerDigits"),
+      Get(options, "minimumIntegerDigits"),
       1,
       21,
       1
     );
     // 2. Let _mnfd_ be ? Get(_options_, *"minimumFractionDigits"*).
-    let mnfd = MustGet(options, "minimumFractionDigits");
+    let mnfd = Get(options, "minimumFractionDigits");
     // 3. Let _mxfd_ be ? Get(_options_, *"maximumFractionDigits"*).
-    let mxfd = MustGet(options, "maximumFractionDigits");
+    let mxfd = Get(options, "maximumFractionDigits");
     // 4. Let _mnsd_ be ? Get(_options_, *"minimumSignificantDigits"*).
-    let mnsd = MustGet(options, "minimumSignificantDigits");
+    let mnsd = Get(options, "minimumSignificantDigits");
     // 5. Let _mxsd_ be ? Get(_options_, *"maximumSignificantDigits"*).
-    let mxsd = MustGet(options, "maximumSignificantDigits");
+    let mxsd = Get(options, "maximumSignificantDigits");
     // 6. Set _intlObj_.[[MinimumIntegerDigits]] to _mnid_.
     intlObj.MinimumIntegerDigits = mnid;
     // 7. Let _roundingPriority_ be ? GetOption(_options_, "roundingPriority", "string", « "auto", "morePrecision", "lessPrecision" », "auto").
     let roundingPriority =
-      MustGet(options, "roundingPriority") || "auto"; /* Default to 'auto' */
+      Get(options, "roundingPriority") || "auto"; /* Default to 'auto' */
 
     // 8. If _mnsd_ is not *undefined* or _mxsd_ is not *undefined*, then
     if (mnsd !== undefined || mxsd !== undefined) {
@@ -88,7 +92,7 @@ function SetNumberFormatDigitOptions_v3(
       // a. Set  _needSd_  to _hasFd_.
       needSd = hasSd;
       // b. Set _hasSd_  is *true*. or _hasFd_ is *false* and *notation* is *"compact"* , then
-      if ((hasSd || !hasFd) && notation === "compact") {
+      if (hasSd || (!hasFd && notation === "compact")) {
         // i. Set  _needFd_  to *false*.
         needFd = false;
       }
@@ -131,6 +135,8 @@ function SetNumberFormatDigitOptions_v3(
         // v. Else if _mnfd_ is greater than _mxfd_, throw a *RangeError* exception.
         else if (mnfd > mxfd)
           throw new RangeError(`mnfd ${mnfd} > mxfd ${mxfd}`);
+        intlObj.step = "16.a.vi";
+        //print("Step 16.a.vi");
         // vi. Set _intlObj_.[[MinimumFractionDigits]] to _mnfd_.
         intlObj.MinimumFractionDigits = mnfd;
         // vii. Set _intlObj_.[[MaximumFractionDigits]] to _mxfd_.
@@ -138,6 +144,8 @@ function SetNumberFormatDigitOptions_v3(
       }
       // b. Else,
       else {
+        intlObj.step = "16.b.i";
+        //print("Step 16.b.i");
         // i. Set _intlObj_.[[MinimumFractionDigits]] to _mnfdDefault_.
         intlObj.MinimumFractionDigits = mnfdDefault;
         // ii. Set _intlObj_.[[MaximumFractionDigits]] to _mxfdDefault_.
@@ -169,6 +177,8 @@ function SetNumberFormatDigitOptions_v3(
     }
     // 18. Else,
     else {
+      intlObj.step = "18";
+      // print("Step 18");
       // a. Set _intlObj_.[[RoundingType]] to ~morePrecision~.
       intlObj.RoundingType = "morePrecision";
       // b. Set _intlObj_.[[MinimumFractionDigits]] to 0.
@@ -197,6 +207,7 @@ const optionValueToFailCount = {
   notation: new Map(),
   style: new Map(),
   currency: new Map(),
+  step: new Map(),
 };
 
 function addFailCount(name, value) {
@@ -213,6 +224,7 @@ function logfail(fail) {
   for (const opt in options) {
     addFailCount(opt, options[opt]);
   }
+  addFailCount("step", fail.expected.step);
   failures.push(fail);
 }
 
@@ -314,5 +326,15 @@ for (const option in optionValueToFailCount) {
   }
   failCountObj[option] = optionsToCounts;
 }
+
 print(JSON.stringify(failCountObj));
 print(failures.length);
+//print(JSON.stringify(failures));
+// print(
+//   SetNumberFormatDigitOptions_v3(
+//     { minimumSignificantDigits: 2, maximumSignificantDigits: 0 },
+//     0,
+//     3,
+//     "standard"
+//   )
+// );
